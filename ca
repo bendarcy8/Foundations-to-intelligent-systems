@@ -1,0 +1,68 @@
+import numpy as np
+
+def triangular_membership(x, a, b, c):
+    """Calculate triangular membership for a fuzzy set."""
+    return max(min((x - a) / (b - a), (c - x) / (c - b)), 0)
+
+# Example membership functions for symptoms
+membership_functions = {
+    "mild": lambda x: triangular_membership(x, 0, 0.3, 0.6),
+    "moderate": lambda x: triangular_membership(x, 0.3, 0.6, 0.8),
+    "severe": lambda x: triangular_membership(x, 0.6, 0.8, 1),
+    "very severe": lambda x: triangular_membership(x, 0.8, 1, 1.2)
+}
+
+# Rule base (example subset)
+rules = [
+    {"symptoms": {"fever": "mild", "chills": "mild", "fatigue": "mild"}, "severity": "mild"},
+    {"symptoms": {"fever": "moderate", "chills": "moderate", "fatigue": "moderate"}, "severity": "moderate"},
+    {"symptoms": {"fever": "severe", "chills": "severe", "fatigue": "severe"}, "severity": "severe"},
+    {"symptoms": {"fever": "very severe", "chills": "very severe", "fatigue": "very severe"}, "severity": "very severe"}
+]
+
+def fuzzify(input_values, membership_functions):
+    """Fuzzify crisp inputs using membership functions."""
+    fuzzified = {}
+    for symptom, value in input_values.items():
+        fuzzified[symptom] = {level: mf(value) for level, mf in membership_functions.items()}
+    return fuzzified
+
+def infer(fuzzified_values, rules):
+    """Apply fuzzy inference based on rules."""
+    rule_strengths = []
+    for rule in rules:
+        strengths = [
+            fuzzified_values[symptom][level]
+            for symptom, level in rule["symptoms"].items()
+        ]
+        rule_strengths.append((rule["severity"], min(strengths)))
+    return rule_strengths
+
+def defuzzify(inferences):
+    """Defuzzify the inferred fuzzy output using the Center of Gravity method."""
+    severity_mapping = {
+        "mild": 1,
+        "moderate": 2,
+        "severe": 3,
+        "very severe": 4
+    }
+    numerator = sum(severity_mapping[severity] * strength for severity, strength in inferences)
+    denominator = sum(strength for _, strength in inferences)
+    return numerator / denominator if denominator != 0 else 0
+
+# Example input values
+inputs = {
+    "fever": 0.7,
+    "chills": 0.5,
+    "fatigue": 0.6
+}
+
+# Fuzzify inputs
+fuzzified = fuzzify(inputs, membership_functions)
+
+# Apply inference
+inferences = infer(fuzzified, rules)
+
+# Defuzzify to get crisp output
+severity_score = defuzzify(inferences)
+print(f"Malaria Severity Score: {severity_score}")
